@@ -130,7 +130,8 @@ node .gen/scripts/gen.mjs install --target cursor --link
 | E30–E35 | error | 决策：缺 `page.html`/`thread.md`、`resolved` 但结论仍是占位、INDEX 缺行/多行/状态不一致 |
 | E40–E41 | error | 台账列数不符 9 列、结果值非法 |
 | W16–W18 | warn | description 过短、正文 >500 行、缺核心 skill |
-| W20 | warn | 文件仍是模板占位符（未填充） |
+| W20 | warn | frontmatter 的 `id` 还是模板占位（`YYYY…` / `xxx`）或 `title` 里还有 `<...>` |
+| W21–W22 | warn | 决策目录名不符合 `D-YYYYMMDDHH-<slug>`；`open` 的决策还没有 Round 1 记录 |
 | W40 | warn | 台账结果不是合法枚举 |
 | W50–W52 | warn | 人读架构缺 `generated_from`、`reviewed` 却无批注回执 |
 | W60 | warn | 报告没登记进 `reports/INDEX.md` |

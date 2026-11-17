@@ -3,7 +3,7 @@ name: repair
 description: 修复失败与缺陷：先做可重复的最小复现，再列假设并二分定位根因，修完补回归测试并验证，无法复现时不许猜着改。当 validate 出现 fail、线上报错、测试不稳定（flaky）、用户说“这个 bug 修一下”时使用。
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
   system: .gen
 ---
 

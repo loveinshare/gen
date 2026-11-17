@@ -427,6 +427,24 @@ function splitRow(line) {
   return s.split('|').map((c) => c.trim());
 }
 
+/* 表格数据行：跳过围栏代码块内的行、表头行、分隔行。
+   代码块里的表格是"示例"，不是数据——模板里的示例行曾被当成真实执行记录统计。 */
+function dataRows(text) {
+  const rows = [];
+  let fence = false;
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^\s*(```|~~~)/.test(l)) { fence = !fence; continue; }
+    if (fence) continue;
+    if (!l.trim().startsWith('|')) continue;
+    const cells = splitRow(l);
+    if (/^[-: ]+$/.test(cells.join(''))) continue;
+    rows.push({ cells, line: i + 1 });
+  }
+  return rows;
+}
+
 function finish(findings, opts) {
   const errors = findings.filter((f) => f.level === 'error');
   const warns = findings.filter((f) => f.level === 'warn');
@@ -483,16 +501,12 @@ function status(rootArg, opts) {
   const indexFile = path.join(GEN, 'decisions/INDEX.md');
   let open = [];
   if (exists(indexFile)) {
-    const lines = read(indexFile).split(/\r?\n/);
-    let cols = null;
-    for (const l of lines) {
-      if (!l.trim().startsWith('|')) continue;
-      const cells = splitRow(l);
-      if (!cols) { cols = cells.map((c) => c.toLowerCase()); continue; }
-      if (/^[-: ]+$/.test(cells.join(''))) continue;
-      const idI = cols.findIndex((h) => h.includes('decision_id') || h === 'id');
-      const stI = cols.findIndex((h) => h.includes('状态') || h === 'status');
-      const itI = cols.findIndex((h) => h.includes('一句话') || h.includes('标题') || h === 'title');
+    const rows = dataRows(read(indexFile));
+    const cols = rows.length ? rows[0].cells.map((c) => c.toLowerCase()) : [];
+    const idI = cols.findIndex((h) => h.includes('decision_id') || h === 'id');
+    const stI = cols.findIndex((h) => h.includes('状态') || h === 'status');
+    const itI = cols.findIndex((h) => h.includes('一句话') || h.includes('标题') || h === 'title');
+    for (const { cells } of rows.slice(1)) {
       if (idI >= 0 && /^D-/.test(cells[idI] || '') && !/YYYYMMDDHH/i.test(cells[idI] || '')) {
         const st = (cells[stI] || '').replace(/[`*]/g, '').trim();
         if (st === 'open' || st === 'blocked') open.push({ id: cells[idI], status: st, title: itI >= 0 ? cells[itI] : '' });
@@ -503,10 +517,10 @@ function status(rootArg, opts) {
   const ledger = path.join(GEN, 'tests/LEDGER.md');
   let tests = { total: 0, fail: 0 };
   if (exists(ledger)) {
-    for (const l of read(ledger).split(/\r?\n/)) {
-      if (!l.trim().startsWith('|') || !/^20\d{8}/.test(splitRow(l)[0] || '')) continue;
+    for (const { cells } of dataRows(read(ledger))) {
+      if (!/^20\d{8}/.test(cells[0] || '')) continue;
       tests.total++;
-      const r = (splitRow(l)[4] || '').replace(/[`*]/g, '').trim();
+      const r = (cells[4] || '').replace(/[`*]/g, '').trim();
       if (r === 'fail' || r === 'flaky') tests.fail++;
     }
   }
@@ -514,8 +528,8 @@ function status(rootArg, opts) {
   const progress = path.join(GEN, 'workflow/state/progress.md');
   let lastProgress = '';
   if (exists(progress)) {
-    const rows = read(progress).split(/\r?\n/).filter((l) => /^\|\s*20\d{8}/.test(l));
-    lastProgress = rows.length ? rows[rows.length - 1] : '';
+    const rows = dataRows(read(progress)).filter((r) => /^20\d{8}/.test(r.cells[0] || ''));
+    lastProgress = rows.length ? `| ${rows[rows.length - 1].cells.join(' | ')} |` : '';
   }
 
   const reportsDir = path.join(GEN, 'reports');
@@ -678,7 +692,7 @@ function cmdInit(opts) {
 
   const dirs = [
     'workflow/state', 'workflow/plans', 'workflow/handoffs',
-    'decisions', 'specs', 'reports/archive',
+    'decisions', 'decisions/archive', 'specs', 'reports/archive',
     'tests/history', 'tests/failures', 'tests/fixtures', 'tests/runs',
     'architecture/agent/modules', 'architecture/agent/contracts', 'architecture/agent/flows',
     'architecture/agent/key/reviews', 'architecture/agent/adr', 'architecture/agent/snapshots',
@@ -1328,19 +1342,27 @@ function cmdInstall(opts) {
   const root = opts.root ? path.resolve(opts.root) : (findProjectRoot() || process.cwd());
   const targetArg = String(opts.target || 'claude');
   const base = opts.global ? os.homedir() : root;
-  const rel = INSTALL_TARGETS[targetArg] || targetArg;
-  const dest = path.isAbsolute(rel) ? rel : path.join(base, rel);
+  const relTarget = INSTALL_TARGETS[targetArg] || targetArg;
+  const dest = path.isAbsolute(relTarget) ? relTarget : path.join(base, relTarget);
   const manifestFile = path.join(dest, '.gen-install.json');
-
-  if (isDir(dest) && !exists(manifestFile) && !opts.force) {
-    console.error(`${C.r}✖ 目标目录已存在且不是 gen 安装的：${dest}${C.x}`);
-    console.error(`${C.d}确认要覆盖请加 --force（会覆盖同名 skill 目录）${C.x}`);
-    return 1;
-  }
-  fs.mkdirSync(dest, { recursive: true });
 
   const src = path.join(BUNDLE, 'skills');
   const skills = fs.readdirSync(src, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+
+  // 目标目录已存在且不是本系统装的：只拦"同名 skill 会被覆盖"的情况，其余照装。
+  // （全局目录 ~/.claude/skills 通常已有别的 skill，硬拒绝等于逼用户一律 --force。）
+  if (isDir(dest) && !exists(manifestFile) && !opts.force) {
+    const clashes = skills.filter((n) => exists(path.join(dest, n)));
+    if (clashes.length) {
+      console.error(`${C.r}✖ 目标目录已有同名 skill：${clashes.join('、')}${C.x}`);
+      console.error(`${C.d}${rel(dest)} 不是本系统安装的，覆盖会丢失原有内容。${C.x}`);
+      console.error(`${C.d}确认要覆盖请加 --force（只覆盖上面这些同名目录，不动其他 skill）${C.x}`);
+      return 1;
+    }
+    console.log(`${C.y}⚠ ${rel(dest)} 已存在且不是 gen 装的，但无同名 skill，继续安装${C.x}`);
+  }
+  fs.mkdirSync(dest, { recursive: true });
+
   const installed = [];
   for (const name of skills) {
     const from = path.join(src, name);
@@ -1366,7 +1388,7 @@ function cmdInstall(opts) {
   }, null, 2), 'utf8');
 
   console.log(`${C.g}✔ 已安装 ${installed.length} 个 skill${C.x} → ${dest}`);
-  console.log(`${C.d}模式：${installed[0]?.mode || 'copy'}｜清单：${rel}${path.sep}.gen-install.json${C.x}`);
+  console.log(`${C.d}模式：${installed[0]?.mode || 'copy'}｜清单：${rel(manifestFile)}${C.x}`);
   if (!exists(path.join(root, 'AGENTS.md'))) {
     console.log(`${C.y}⚠ 项目根没有 AGENTS.md：只装 skill 不够，制度文件必须一起放${C.x}`);
   }
@@ -1379,22 +1401,23 @@ function collectStats(root) {
   const GEN = path.join(root, '.gen');
   const readFm = (p) => (exists(p) ? parseFrontmatter(read(p))?.data || {} : {});
 
-  const decisions = { total: 0, open: 0, resolved: 0, blocked: 0, rows: [] };
+  const decisions = { total: 0, open: 0, resolved: 0, blocked: 0, waived: 0, superseded: 0, rows: [] };
   const indexFile = path.join(GEN, 'decisions/INDEX.md');
   if (exists(indexFile)) {
-    let cols = null;
-    for (const l of read(indexFile).split(/\r?\n/)) {
-      if (!l.trim().startsWith('|')) continue;
-      const cells = splitRow(l);
-      if (!cols) { cols = cells.map((c) => c.toLowerCase()); continue; }
-      if (/^[-: ]+$/.test(cells.join(''))) continue;
-      const id = cells[cols.findIndex((h) => h.includes('decision_id') || h === 'id')] || '';
+    const rows = dataRows(read(indexFile));
+    const cols = rows.length ? rows[0].cells.map((c) => c.toLowerCase()) : [];
+    const idI = cols.findIndex((h) => h.includes('decision_id') || h === 'id');
+    const stI = cols.findIndex((h) => h.includes('状态') || h === 'status');
+    for (const { cells } of rows.slice(1)) {
+      const id = cells[idI] || '';
       if (!/^D-/.test(id) || /YYYYMMDDHH/i.test(id)) continue;
-      const st = (cells[cols.findIndex((h) => h.includes('状态') || h === 'status')] || '').replace(/[`*]/g, '').trim();
+      const st = (cells[stI] || '').replace(/[`*]/g, '').trim();
       decisions.total++;
       if (st === 'open') decisions.open++;
       else if (st === 'resolved') decisions.resolved++;
       else if (st === 'blocked') decisions.blocked++;
+      else if (st === 'waived') decisions.waived++;
+      else if (st === 'superseded') decisions.superseded++;
       decisions.rows.push({ id, status: st });
     }
   }
@@ -1402,9 +1425,7 @@ function collectStats(root) {
   const tests = { total: 0, pass: 0, fail: 0, flaky: 0, skipped: 0, blocked: 0, recent: [] };
   const ledger = path.join(GEN, 'tests/LEDGER.md');
   if (exists(ledger)) {
-    for (const l of read(ledger).split(/\r?\n/)) {
-      if (!l.trim().startsWith('|')) continue;
-      const cells = splitRow(l);
+    for (const { cells } of dataRows(read(ledger))) {
       if (!/^20\d{8}/.test(cells[0] || '')) continue;
       const r = (cells[4] || '').replace(/[`*]/g, '').trim();
       tests.total++;
@@ -1426,8 +1447,7 @@ function collectStats(root) {
   const progress = [];
   const pfile = path.join(GEN, 'workflow/state/progress.md');
   if (exists(pfile)) {
-    for (const l of read(pfile).split(/\r?\n/)) {
-      const cells = splitRow(l);
+    for (const { cells } of dataRows(read(pfile))) {
       if (/^20\d{8}/.test(cells[0] || '')) progress.push(cells);
     }
   }
@@ -1452,11 +1472,14 @@ function collectStats(root) {
 function cmdReport(opts) {
   const root = opts.root ? path.resolve(opts.root) : findProjectRoot();
   if (!root) return usage('找不到 .gen 项目');
+  const type = String(opts.type || 'weekly');
+  if (!REPORT_TYPES.includes(type)) return usage(`--type 只能是 ${REPORT_TYPES.join(' / ')}（收到「${type}」）`);
   const s = collectStats(root);
   const ts = tsFile();
   const title = String(opts.title || '进展自动汇总').replace(/[\\/:*?"<>|]/g, '-').slice(0, 40);
+  const slug = String(opts.slug || 'auto').replace(/[^a-z0-9-]/gi, '-').toLowerCase() || 'auto';
 
-  const md = buildReportMd({ s, title, ts });
+  const md = buildReportMd({ s, title, ts, type, slug });
   if (opts.json) { console.log(JSON.stringify(s, null, 2)); return 0; }
   if (!opts.write) { process.stdout.write(md); return 0; }
 
@@ -1464,7 +1487,7 @@ function cmdReport(opts) {
   if (exists(file)) return usage(`已存在：${rel(file)}`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, md, 'utf8');
-  addReportRow(path.join(root, '.gen/reports/INDEX.md'), `| ${ts} | ${title} | ${opts.type || 'weekly'} | 自动汇总，待人工补结论 | ${ts}-${title}.md |`);
+  addReportRow(path.join(root, '.gen/reports/INDEX.md'), `| ${ts} | ${title} | ${type} | 自动汇总，待人工补结论 | ${ts}-${title}.md |`);
   console.log(`${C.g}✔ 已生成${C.x} ${rel(file)}`);
   console.log(`${C.d}下一步：核对数字 → 补「一句话结论 / 风险 / 下一步 / 待拍板」→ status 改 final${C.x}`);
   return 0;
@@ -1480,16 +1503,17 @@ function addReportRow(file, row) {
   return true;
 }
 
-function buildReportMd({ s, title, ts }) {
+function buildReportMd({ s, title, ts, type = 'weekly', slug = 'report' }) {
   const iso = nowISO();
   const rows = s.tests.recent.slice(-10).map((c) => `| ${c[0]} | ${c[1]} | \`${c[3]}\` | ${c[4]} | ${c[5]} |`).join('\n');
+  const passRate = s.tests.total ? Math.round((s.tests.pass / s.tests.total) * 100) : 0;
   return `---
-id: R-${ts}-auto
+id: R-${ts}-${slug}
 kind: report
 title: ${title}
 created: ${iso}
 status: draft
-report_type: weekly
+report_type: ${type}
 links: []
 author: agent
 ---
@@ -1498,42 +1522,50 @@ author: agent
 
 > 自动汇总生成，数字来自 \`decisions/INDEX.md\`、\`tests/LEDGER.md\`、\`tests/failures/\`、\`progress.md\`。
 > **数字需人工核对**，结论/风险/下一步必须人补；补完把 \`status\` 改 \`final\`。
+> 结构固定十节（见 \`periodic-report\` skill）；标「待填写」的节是人写的部分。
 
 ## 1. 一句话结论
 
 <!-- 待填写：≤40 字，说人话 -->
 
-## 2. 数字看板
+## 2. 本周期做了什么
+
+${s.progress.length ? s.progress.slice(-8).map((c) => `- ${c[0]} ｜ ${c[1]} ｜ ${c[2]}`).join('\n') : '- （无）'}
+
+## 3. 数字看板
 
 | 指标 | 数值 | 来源 |
 |---|---|---|
 | 阶段 / 当前切片 | ${s.phase['阶段'] || '—'} / ${s.phase['当前切片'] || '—'} | current-phase.md |
-| 决策 总数 / open / resolved / blocked | ${s.decisions.total} / ${s.decisions.open} / ${s.decisions.resolved} / ${s.decisions.blocked} | decisions/INDEX.md |
+| 决策 总数 / open / resolved / blocked / waived | ${s.decisions.total} / ${s.decisions.open} / ${s.decisions.resolved} / ${s.decisions.blocked} / ${s.decisions.waived} | decisions/INDEX.md |
 | 测试 执行 / pass / fail / flaky | ${s.tests.total} / ${s.tests.pass} / ${s.tests.fail} / ${s.tests.flaky} | tests/LEDGER.md |
+| 测试 通过率 | ${s.tests.total ? passRate + '%' : '—'} | tests/LEDGER.md |
 | 失败档案 总数 / open | ${s.failures.total} / ${s.failures.open} | tests/failures/ |
 | 已出报告 | ${s.reports.length} | reports/ |
 
-## 3. 决策
+## 4. 决策与变更
 
 ${s.decisions.rows.length ? s.decisions.rows.map((d) => `- \`${d.id}\` — ${d.status}`).join('\n') : '- （无）'}
 
-## 4. 测试（最近 10 次）
+## 5. 风险与阻塞
+
+<!-- 待填写：每条写「影响 / 触发条件 / 建议怎么办」 -->
+
+## 6. 质量
 
 | 时间 | 切片 | 命令 | 结果 | 失败数 |
 |---|---|---|---|---|
 ${rows || '| — | — | — | — | — |'}
 
-## 5. 未结失败
+未结失败：
 
 ${s.failures.items.length ? s.failures.items.map((f) => `- \`${f.file}\` ${f.severity || ''} — ${f.title || ''}`).join('\n') : '- （无）'}
 
-## 6. 最近进度
+<!-- 待填写：哪些验收标准仍未验证（写 unknown 的原因） -->
 
-${s.progress.length ? s.progress.slice(-8).map((c) => `- ${c[0]} ｜ ${c[1]} ｜ ${c[2]}`).join('\n') : '- （无）'}
+## 7. 架构影响
 
-## 7. 风险与阻塞
-
-<!-- 待填写：每条写「影响 / 触发条件 / 建议怎么办」 -->
+<!-- 待填写：哪个模块 / 契约 / key 变了；无则写「本周期无架构变更」 -->
 
 ## 8. 下一步
 
@@ -1542,6 +1574,12 @@ ${s.progress.length ? s.progress.slice(-8).map((c) => `- ${c[0]} ｜ ${c[1]} ｜
 ## 9. 需要你拍板的事
 
 <!-- 0–3 条；有就开决策页，别只写在报告里 -->
+
+## 10. 附录
+
+- 生成命令：\`node .gen/scripts/gen.mjs report --title "${title}" --type ${type}\`
+- 数字来源：\`decisions/INDEX.md\`、\`tests/LEDGER.md\`、\`tests/failures/\`、\`workflow/state/progress.md\`
+- 环境矩阵：\`tests/matrix.md\`
 
 ## 勘误
 

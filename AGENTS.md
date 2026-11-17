@@ -18,7 +18,7 @@
 
 | 编号 | 铁律 | 判定方式 |
 |---|---|---|
-| **R1** | **未关闭的决策不得进入实现。** 当前 feature/slice 关联的决策只要有一个不是 `resolved`，`implement` 必须拒绝执行并列出未关闭项。 | 读 `.gen/decisions/INDEX.md` + 对应 `thread.md` 最终结论段 |
+| **R1** | **未关闭的决策不得进入实现。** 当前 feature/slice 关联的决策只要有一个不是 `resolved`（`waived` 视为已关闭），`implement` 必须拒绝执行并列出未关闭项。 | 读 `.gen/decisions/INDEX.md` + 对应 `thread.md` 最终结论段 |
 | **R2** | **单一真源。** 同一事实只在一个文件里定义，其余地方只链接、不复制。人读架构文档是**生成物**，禁止手改正文。 | 出现两处同一张字段表即视为违反 |
 | **R3** | **不声称未验证的通过。** 没跑过就说没跑过；没证据就写 `unknown`，不写 `pass`。 | `validate` 的证据矩阵每行必须有命令与输出 |
 | **R4** | **接管先读状态。** 新会话、恢复会话、换工具，先跑 `continuation-planner`，产出 handoff 后才允许改代码。 | `.gen/workflow/handoffs/` 有当次文件 |
@@ -85,7 +85,7 @@ intake → analyze → plan → decision-gate → implement → validate → rep
 ## 5. 横切规则 B：决策交互协议（摘要，全文见 `decision-page` skill）
 
 1. 一个决策一个目录：`.gen/decisions/D-YYYYMMDDHH-<slug>/`。
-2. 生命周期：`open → resolved`，另有 `blocked`（卡在外部）与 `superseded`（被新决策取代）。
+2. 生命周期：`open → resolved`，另有 `blocked`（卡在外部）、`superseded`（被新决策取代）、`waived`（用户明确授权按默认行为执行，风险入档）。**`resolved` 与 `waived` 都算已关闭**，闸门放行；`open`/`blocked` 阻塞实现。
 3. 每个决策目录含：`page.html`（最新交互页）、`thread.md`（**权威记录**，append-only）、`response-rN.md`（每轮用户批复）、`page-rN.html`（历史快照）。
 4. 工具必须**逐项回应**用户批复：解释、回答反问、修订方案、给新问题；禁止只回"已更新"。**每轮最多新增 3 个问题**，防止发散。
 5. 关闭只能由用户明确表态触发，工具不得单方面关闭；`thread.md` 必须留下"依据：<用户原话>"。

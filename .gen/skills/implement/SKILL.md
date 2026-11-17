@@ -3,7 +3,7 @@ name: implement
 description: 在决策闸门通过后执行有界代码改动：先过闸门、再按 touch list 改、只做静态检查、不声称运行时通过、边改边记。当计划就绪、决策全部关闭、需要真正写代码时使用。任何“先写了再说”的冲动都应被本 skill 拦下。
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
   system: .gen
 ---
 
@@ -26,7 +26,7 @@ metadata:
 
 1. 读 `.gen/decisions/INDEX.md`，过滤出与当前 feature/slice 相关的决策（`links` 命中切片 ID / `feature` 字段一致 / 标题明显相关）。
 2. 对每个相关决策，检查：
-   - `INDEX.md` 状态是否 `resolved`
+   - `INDEX.md` 状态是否 `resolved`（`waived` 也算已关闭——用户已授权按默认行为执行，风险已入档）
    - `thread.md` 是否有 `## 最终结论` 段
 3. 任一不满足 → **停止**，输出未关闭清单（见 `decision-page` §6），并把本次尝试记入 `progress.md`（`blocked-by-decision`）。
 4. 匹配依据要写出来（哪条 links / 哪个 feature），避免"看起来相关"就拦。

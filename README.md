@@ -1,4 +1,4 @@
-# `.gen` 体系 · 通用 Vibecoding 过程规范（中文版 v4.2.0）
+# `.gen` 体系 · 通用 Vibecoding 过程规范（中文版 v4.3.0）
 
 > 一句话：把"和 AI 一起做大型项目"里最容易丢的东西——**对齐过的决策、验证过的证据、可理解的架构、追得回的测试历史**——变成仓库里一套固定的目录和 12 个可执行 skill。
 >
@@ -29,7 +29,7 @@
 
 ## 2. 层次：为什么顺序必须是这样
 
-你的原始 7 条要求其实是混在一起的（决策、目录、报告、测试、架构）。理顺之后是六层，**上层不成立时下层做了也白做**：
+你的原始 5 条要求其实是混在一起的（决策、目录、报告、测试、架构），另外还问了两个问题（有没有现成规范、这些要求是否合理）。理顺之后是六层，**上层不成立时下层做了也白做**：
 
 ```text
 L0 宪法        根 AGENTS.md —— 不可协商的规则（闸门、单一真源、不谎报）
@@ -175,7 +175,7 @@ L5 演进        VERSION + skill 自身修订 —— 体系也要能被改（走
 
 ---
 
-## 8. 对你 7 条要求的逐条评估
+## 8. 对你 5 条要求的逐条评估（拆成 7 个评估点）
 
 | # | 你的要求 | 判断 | 理由 | 我做的收紧 |
 |---|---|---|---|---|
@@ -249,7 +249,7 @@ L5 演进        VERSION + skill 自身修订 —— 体系也要能被改（走
 | `.gen/templates/architecture/*.md` | agent 总图、模块页、human 版、key 登记/变更史/评审、ADR |
 | `.gen/templates/{handoff.md,gitignore.template}` | 交接、忽略规则 |
 | `.gen/templates/ci/gen-lint.yml` | CI 模板：每次 push 跑 lint + 闸门 |
-| [.gen/scripts/gen.mjs](.gen/scripts/gen.mjs) | **零依赖工具链**：lint / status / serve / new / init / demo / test |
+| [.gen/scripts/gen.mjs](.gen/scripts/gen.mjs) | **零依赖工具链**：lint / status / serve / new / init / demo / test / key-check / install / report / decision-diff |
 | [.gen/scripts/gen.test.mjs](.gen/scripts/gen.test.mjs) | 工具自测：56 个用例（node:test，无第三方依赖） |
 | [.gen/scripts/README.md](.gen/scripts/README.md) | CLI 用法、检查项清单、测试覆盖、安全边界 |
 | [.gen/scripts/new-artifact.ps1](.gen/scripts/new-artifact.ps1) | PowerShell 兼容包装（实际调用 gen.mjs） |
@@ -268,7 +268,7 @@ L5 演进        VERSION + skill 自身修订 —— 体系也要能被改（走
 
 ---
 
-## 12. 工具链（v4.2.0）
+## 12. 工具链（v4.3.0）
 
 不再只是"文档约定"：`.gen/scripts/gen.mjs` 把确定性的部分变成了可执行检查。零依赖，Node ≥ 16，跨平台，可在任意子目录跑。
 
@@ -303,7 +303,7 @@ node .gen/scripts/gen.mjs install --target claude               # 装 skills 到
 
 一个实现细节值得记下来：Windows 上源路径含中文时 `fs.cpSync` 会让 Node 直接崩（`0xC0000409`），脚本因此自己实现 `copyTree`（`readdir + copyFileSync`）。踩过一次，写进 [scripts/README](.gen/scripts/README.md) 了。
 
-### 四个让规则"长出牙齿"的命令（v4.2.0）
+### 四个让规则"长出牙齿"的命令（v4.3.0）
 
 | 命令 | 把哪条纸面规则变成可执行 |
 |---|---|
@@ -316,7 +316,7 @@ node .gen/scripts/gen.mjs install --target claude               # 装 skills 到
 
 决策页数据因此从 JS 字面量改成 `<script id="gen-data">` 的 JSON 块——既是数据/展示分离，也让 diff 能可靠解析（不用 `eval`）。
 
-### 测试（v4.2.0）
+### 测试（v4.3.0）
 
 56 个用例全绿（`node --test`，零第三方依赖），每个用例自建临时项目、走真实模板初始化，跑完删除：
 
@@ -352,6 +352,7 @@ node .gen/scripts/gen.mjs install --target claude               # 装 skills 到
 
 | 版本 | 变更 | 破坏性 |
 |---|---|---|
+| 4.3.0 | 修 CI 模板 `paths` 过滤导致 key-check 永不触发；修模板示例行被 `status` 当成真实数据（新项目误报"1 次 fail"）；宪法补齐 `waived` 状态并统一闸门口径（`resolved`/`waived` 均放行）；决策项状态统一为 `unanswered`；报告结构统一为十节（模板 / 工具 / skill 三处对齐）；`.gen/AGENTS.md` 状态枚举表补全（spec/adr/snapshot/ledger/state）；`init` 补建 `decisions/archive/`；`install` 改为按同名冲突判定（全局目录不再被一律拒绝）；12 个 skill 补齐"触发/步骤/交付判定"五段结构 | 决策项状态值由 `open` 改为 `unanswered`（旧页面数据块需改一次）；`report` 的 frontmatter 新增 `report_type` 实参传递、`--type` 现在会校验；报告章节号由 9 节变 10 节（"一句话结论"升为第 1 节） |
 | 4.2.0 | 新增 `key-check`（git∩REGISTRY，命中即失败）、`install`（skills 分发）、`report`（看板初稿）、`decision-diff`（轮次差异页）；决策页数据改为 JSON 数据块；测试 40→56 | 决策页数据从 JS 字面量改为 `<script id="gen-data">` JSON；旧页面需转换一次（`fillPageData` 可用） |
 | 4.1.1 | 新增 `gen test` 与 `gen.test.mjs`（40 用例）；修 4 个由测试暴露的缺陷；CI 模板加自测步骤 | 无 |
 | 4.1.0 | 新增工具链 `gen.mjs`（lint/status/serve/new/init/demo）；决策页支持 localhost 直存；`kind` 增 `review`；`thread.md` 改为 `kind: thread` | 旧 `thread.md` 的 `kind: decision` 仍被接受（`KINDS` 两者都在），无需迁移 |

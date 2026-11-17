@@ -3,7 +3,7 @@ name: gen-init
 description: 在一个仓库里初始化 .gen 过程骨架：创建目录、状态栈、决策看板、测试总账、双架构文档和 gitignore，并把项目快照填到可用状态。当用户说“给这个项目装 .gen”“初始化流程规范”“接入这套体系”，或仓库里还没有 .gen 目录时使用。
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
   system: .gen
 ---
 

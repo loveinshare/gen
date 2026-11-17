@@ -3,7 +3,7 @@ name: validate
 description: 为每条验收标准产出可核对的证据矩阵：标准、命令、输出摘要、判定（pass/fail/unknown）。未证明不得结论，失败自动转 repair。当实现完成、准备收尾、需要向用户证明“真的能用”，或用户问“验过了吗”时使用。
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
   system: .gen
 ---
 

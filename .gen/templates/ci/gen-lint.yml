@@ -2,15 +2,13 @@
 # .gen 一致性校验（复制到 .github/workflows/gen-lint.yml）
 name: gen-lint
 
+# 注意：这里**不要**加 paths 过滤。
+# key-check 检查的是"代码文件是否落在 key 登记的 path:start-end 区间内"，
+# 而代码改动不匹配 .gen/** —— 加上 paths 会让 key 守护在真实 PR 上根本不触发。
+# 若嫌 lint 跑得频繁，用 job 级 `if:` 或拆两个 workflow，而不是 paths 过滤。
 on:
   push:
-    paths:
-      - '.gen/**'
-      - 'AGENTS.md'
   pull_request:
-    paths:
-      - '.gen/**'
-      - 'AGENTS.md'
 
 jobs:
   lint:

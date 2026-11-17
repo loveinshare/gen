@@ -13,8 +13,8 @@ status: generated
 
 | 代号 | OS | 运行时 | 包管理 | 数据库/服务 | 备注 | 上次验证 |
 |---|---|---|---|---|---|---|
-| win11/node20 | Windows 11 23H2 | Node 20.11 | pnpm 8.15 | SQLite | 开发机 | YYYYMMDDHH |
-| linux/ci | Ubuntu 22.04 | Node 20.11 | pnpm 8.15 | Postgres 15 | CI | YYYYMMDDHH |
+| win11/node20 | Windows 11 23H2 | Node 20.11 | pnpm 8.15 | SQLite | 开发机 | — |
+| linux/ci | Ubuntu 22.04 | Node 20.11 | pnpm 8.15 | Postgres 15 | CI | — |
 
 ## 已知环境差异
 

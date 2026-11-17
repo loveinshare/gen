@@ -3,7 +3,7 @@ name: decision-page
 description: 把模糊点、隐藏假设和方案取舍变成一个可交互的 HTML 决策页，支持逐项文字批注、反问、要求解释和导出批复；工具读取批复后必须逐项回应并生成下一轮页面，直到所有项关闭才放行实现。当开发前或开发中存在需要用户拍板的取舍、agent 发现自己正在猜用户意图、涉及 key/契约/架构变更，或用户说“这个我要先确认”“给我个决策页”时使用。
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
   system: .gen
 ---
 
@@ -111,7 +111,7 @@ metadata:
 | 改写方案 | 复述你的理解（一句话），确认没歪，再更新选项 |
 | 新担忧 | 判断是否上升为新决策项（默认：是，进"本轮新增"） |
 | 说"这项定了" / "按推荐" | 该项标 `closed`，thread 记**依据原话** |
-| 没提到某项 | 保持 `open`，并在回应里**明确点名**："第 3 项你没提，我先保持开放，因为……" |
+| 没提到某项 | 保持 `unanswered`，并在回应里**明确点名**："第 3 项你没提，我先保持开放，因为……" |
 
 9. **禁止**只说"已更新""已按您的意见修改""好的"。必须能让人看出：你听懂了什么、改了什么、还有什么没解决。
 10. **每轮最多新增 3 个问题**。超过说明拆得不够细（拆成新决策目录），否则会发散成无底洞。
@@ -137,7 +137,7 @@ metadata:
 - 单条 `closed` 的条件：用户在批复中**明确表态**（"这项定了""按 B 走""同意推荐"），且 thread 记录依据原话。
 - 整个决策 `resolved` 的条件：所有项 `closed` + 最终结论段已写 + `INDEX.md` 已更新。
 - 用户说"你决定吧"→ 记 `waived`，写明"由 agent 决定"及理由，仍算关闭，但**风险写入 `ambiguities.md`**。
-- 用户沉默 / 没提到 → **保持 `open`**。
+- 用户沉默 / 没提到 → 该项保持 `unanswered`（决策整体仍为 `open`）。
 - 用户明确说"先不做这个"→ `status: blocked`，写明阻塞原因与解锁条件。
 
 ---
@@ -169,7 +169,7 @@ node .gen/scripts/gen.mjs decision-diff --decision <D-id>
      - D-2026081502-token-store（open，未关闭项：2）
        未关闭项：Q1 令牌存储位置 / Q3 跨域策略
      请先在 decisions/D-.../page.html 批复，或说明按默认行为执行。"
-→ 全部 resolved 才继续
+→ 全部 resolved 或 waived 才继续（waived = 用户授权按默认行为执行，风险已入 ambiguities.md）
 ```
 
 **闸门范围最小化**：只拦"与当前切片相关"的决策，不拦全项目所有决策；匹配依据必须写在回复里，避免误伤。
@@ -192,12 +192,27 @@ items:
     assumptions: ["假设你有独立前端域名，若同域则 A 更简单"]
     excluded: [{option: C, reason: 需要引入额外网关}]
     default_if_silent: 按 B 实现，并在 README 记录风险
-    state: open
+    state: unanswered    # unanswered | annotated | closed（不要写 open）
 ```
 
 ---
 
-## 八、反模式
+## 八、交付判定
+
+一轮结束时逐条核对（缺则不算完成）：
+
+- [ ] 每项都有**可见回应**：解释了、回答了、修订了、点名了没被提到的项（§四.8）
+- [ ] 批复**原文**落盘为 `response-rN.md`，未被润色
+- [ ] `thread.md` 追加了本轮：Round N → agent → 用户批复 → agent 回应
+- [ ] `INDEX.md` 的状态、轮次、未关闭项数已更新
+- [ ] 旧页已归档为 `page-rN.html`，新 `page.html` 顶部状态条正确
+- [ ] 本轮新增问题 ≤3 条；超了说明该拆新决策目录
+- [ ] 关闭时：`thread.md` 有 `## 最终结论` 段、`INDEX.md` 状态为 `resolved`、涉及架构/key 时写了 ADR 与 `specs/<f>/decisions.md`
+- [ ] `progress.md` 追加了一行
+
+**关闭前最后一道**：`gen.mjs lint` 不得报 E32（"假关闭"：状态 resolved 但最终结论仍是占位）。
+
+## 九、反模式
 
 - 页面里出现"以下为 AI 建议，请确认"却**没有具体选项和代价**（等于把决策踢回给人）
 - 把 10 个问题塞进一页（人只会关掉）
@@ -206,6 +221,6 @@ items:
 - 批复原文被"润色"后落盘（追溯时失真）
 - 依赖浏览器持久化（`localStorage` 在原页面里不可靠、换机就丢）——**导出文本才是持久化**
 
-## 九、模板
+## 十、模板
 
 `templates/decision/page.html` · `templates/decision/thread.md` · `templates/decision/response.md` · `templates/decision/INDEX.md`

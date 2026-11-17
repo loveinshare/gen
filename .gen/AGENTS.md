@@ -69,6 +69,7 @@
 ├── decisions/
 │   ├── INDEX.md                    # 看板（工具可读源）
 │   ├── INDEX.html                  # 可选：决策多时由 INDEX.md 渲染
+│   ├── archive/                    # 归档：superseded 满 2 季度后移入，INDEX 行永久保留
 │   └── D-YYYYMMDDHH-<slug>/
 │       ├── page.html               # 最新交互页
 │       ├── thread.md               # 权威多轮线程，append-only
@@ -207,15 +208,20 @@ author: agent             # agent | human | both
 
 | 对象 | 枚举 | 含义 |
 |---|---|---|
-| 决策 | `open` `resolved` `blocked` `superseded` | `blocked` = 等外部信息；`superseded` = 被新决策取代 |
-| 决策项（单条） | `unanswered` `annotated` `closed` | 页面控件的三个状态 |
+| 决策 | `open` `resolved` `blocked` `superseded` `waived` | `blocked` = 等外部信息；`superseded` = 被新决策取代；`waived` = 用户授权按默认行为执行（**视为已关闭**，风险入 `ambiguities.md`） |
+| 决策项（单条） | `unanswered` `annotated` `closed` | 页面控件的三个状态；**不要写 `open`** |
 | 切片 / 阶段 | `todo` `doing` `blocked` `done` `dropped` | `dropped` 必须写原因 |
-| 测试结果 | `pass` `fail` `flaky` `skipped` `blocked` | `flaky` 需 ≥3 次证据 |
+| 状态栈文件 | `generated` `open` `doing` `done` `blocked` | `workflow/state/*` 与看板类文件 |
+| 规格 | `draft` `active` `done` `dropped` | `spec.md` 的生效状态 |
+| 测试结果 | `pass` `fail` `flaky` `skipped` `blocked` | 台账"结果"列取值（**不是** frontmatter 的 status）；`flaky` 需 ≥3 次证据 |
 | 缺陷 | `open` `mitigated` `fixed` `wontfix` | `wontfix` 必须写理由与影响 |
-| key | `stable` `changing` `deprecated` | `changing` 期间禁止发布 |
+| key | `generated` `stable` `changing` `deprecated` | `changing` 期间禁止发布 |
 | 评审 | `final` `draft` | key 变更评审单 |
 | 报告 | `draft` `final` | `final` 后只许追加勘误节 |
 | 架构文档 | `generated` `reviewed` | `reviewed` 需人签字（批注回执） |
+| ADR | `proposed` `accepted` `superseded` `rejected` | 架构决策记录 |
+| 快照 | `generated` `frozen` | 冻结，永不修改 |
+| 台账 / 修订 / 批复 / 交接 | `generated` / `draft` / `final` | 见 `kind` 对应的取值 |
 
 **禁止自造状态**：如 `done-ish`、`基本完成`、`待定`。要表达就用正文。
 

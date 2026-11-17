@@ -89,8 +89,10 @@ author: agent
 
 | 项 | 问题 | 状态 | 关闭依据 |
 |---|---|---|---|
-| Q1 | ... | open | — |
+| Q1 | ... | unanswered | — |
 | Q2 | ... | closed | 「按 B 走」 |
+
+> 状态取值只有 `unanswered` / `annotated` / `closed` 三种（见 `.gen/AGENTS.md` §5）。
 
 ---
 

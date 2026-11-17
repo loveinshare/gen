@@ -711,16 +711,22 @@ describe('install', () => {
     } finally { cleanup(root); }
   });
 
-  test('目标目录已存在且非 gen 安装 → 拒绝；--force 可覆盖', () => {
+  test('目标目录已存在且非 gen 安装 → 无同名 skill 照装；有同名则拒绝，--force 可覆盖', () => {
     const root = mkProject();
     try {
+      // 目录已存在，但里面没有同名 skill：不该被硬拒绝（全局目录常见情形）
       write(root, 'my-skills/README.md', '手写的\n');
-      const refused = runCli(['install', '--root', root, '--target', 'my-skills']);
-      assert.equal(refused.code, 1);
-      assert.match(refused.err, /不是 gen 安装/);
-      const forced = runCli(['install', '--root', root, '--target', 'my-skills', '--force']);
-      assert.equal(forced.code, 0);
+      const ok = runCli(['install', '--root', root, '--target', 'my-skills']);
+      assert.equal(ok.code, 0, ok.err);
       assert.ok(fs.existsSync(path.join(root, 'my-skills/decision-page/SKILL.md')));
+      // 有同名 skill：必须先确认
+      write(root, 'clash/plan/SKILL.md', '同名但不是我装的\n');
+      const refused = runCli(['install', '--root', root, '--target', 'clash']);
+      assert.equal(refused.code, 1);
+      assert.match(refused.err, /同名 skill/);
+      const forced = runCli(['install', '--root', root, '--target', 'clash', '--force']);
+      assert.equal(forced.code, 0, forced.err);
+      assert.match(fs.readFileSync(path.join(root, 'clash/plan/SKILL.md'), 'utf8'), /name: plan/);
     } finally { cleanup(root); }
   });
 
@@ -753,7 +759,7 @@ describe('report', () => {
     try {
       const r = runCli(['report', '--root', root, '--title', '自动汇总']);
       assert.equal(r.code, 0, r.err);
-      assert.match(r.out, /决策 总数 \/ open \/ resolved \/ blocked \| 1 \/ 1 \/ 0 \/ 0/);
+      assert.match(r.out, /决策 总数 \/ open \/ resolved \/ blocked \/ waived \| 1 \/ 1 \/ 0 \/ 0 \/ 0/);
       assert.match(r.out, /失败档案 总数 \/ open \| 1 \/ 1/);
       assert.match(r.out, /status: draft/);
       assert.match(r.out, /待填写/);
