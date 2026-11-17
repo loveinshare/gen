@@ -3,7 +3,7 @@ name: continuation-planner
 description: 接管半成品项目：读状态栈、规格、决策看板和测试台账，产出 handoff，复述“我们在哪/为什么在这/下一步/需要你拍板什么”。当会话恢复、换工具、隔一段时间回来、用户说“继续上次”“做到哪了”“先看看现状”，或任何 agent 第一次进入仓库时使用。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 

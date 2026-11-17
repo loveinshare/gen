@@ -3,7 +3,7 @@ name: implement
 description: 在决策闸门通过后执行有界代码改动：先过闸门、再按 touch list 改、只做静态检查、不声称运行时通过、边改边记。当计划就绪、决策全部关闭、需要真正写代码时使用。任何“先写了再说”的冲动都应被本 skill 拦下。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 

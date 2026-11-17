@@ -3,7 +3,7 @@ name: arch-sync
 description: 维护两套架构描述：agent 层（结构化单一真源，含模块职责、契约、数据流、不变量、key 链接）与 human 层（生成的中文可读版，五句话讲清一个模块，可批注）。功能变更后自动增量更新 agent 层、重渲染 human 层、做漂移检查并写同步报告。当功能完成、阶段收束、契约或 key 变化、用户说“架构图更新一下”“这个我看不懂”，或新增模块时使用。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 

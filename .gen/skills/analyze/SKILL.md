@@ -3,7 +3,7 @@ name: analyze
 description: 在动方案之前先固定事实：读代码与运行环境，产出证据、约束、风险清单和可测量的验收标准，并对每个结论标注“事实/推断/未知”。当用户提出新需求、描述一个 bug、要求评估改动影响，或计划还没动手时使用；明确不产出方案。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 

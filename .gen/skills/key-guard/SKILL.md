@@ -3,7 +3,7 @@ name: key-guard
 description: 识别并守护“系统成败所系”的关键实现（key）：用七问定位候选，按影响×不可逆定守护级别，写不变量与验证方式，登记变更史与评审记录；任何 diff 触碰 key 路径必须走决策与人确认。当更换语言/框架、重写核心算法、改数据迁移或鉴权计费、或用户问“这个项目真正关键的是什么”时使用。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 

@@ -3,7 +3,7 @@ name: periodic-report
 description: 出定期报告与阶段评审：用数字时间戳命名，复杂内容用 HTML，结构固定为摘要、做了什么、数字看板、决策与变更、风险、质量、架构影响、下一步、需要你拍板的事。当阶段收束、每周固定节奏、发生事故、发版前，或用户说“出个报告”“总结一下”时使用。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 

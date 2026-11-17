@@ -445,6 +445,27 @@ function dataRows(text) {
   return rows;
 }
 
+/* 往表格末尾追加一行：在第一段连续表格块（表头 + 分隔行 + 数据行）的末尾插入。
+   模板的表头下现在不放示例行了，所以不能靠"替换示例行"来写入。 */
+function appendTableRow(text, row) {
+  const lines = text.split(/\r?\n/);
+  let fence = false;
+  let end = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^\s*(```|~~~)/.test(l)) { fence = !fence; continue; }
+    if (fence) continue;
+    if (!l.trim().startsWith('|')) {
+      if (end >= 0) break;      // 表格块结束
+      continue;
+    }
+    end = i;
+  }
+  if (end < 0) return text;      // 没有表格块，原样返回
+  lines.splice(end + 1, 0, row);
+  return lines.join('\n');
+}
+
 function finish(findings, opts) {
   const errors = findings.filter((f) => f.level === 'error');
   const warns = findings.filter((f) => f.level === 'warn');
@@ -1028,8 +1049,8 @@ function cmdDemo(opts) {
 
   // 一条测试台账 + 一个失败档案
   const ledger = path.join(GEN, 'tests/LEDGER.md');
-  let lg = read(ledger);
-  lg = lg.replace(/\| 2026111503 \|.*\n/, `| ${ts} | S-auth-03 | 实现后自检 | \`pnpm vitest run tests/auth\` | fail | 2 | F-${ts}-login-500 | win11/node20 | ${dId} |\n`);
+  const lg = appendTableRow(read(ledger),
+    `| ${ts} | S-auth-03 | 实现后自检 | \`pnpm vitest run tests/auth\` | fail | 2 | F-${ts}-login-500 | win11/node20 | ${dId} |`);
   fs.writeFileSync(ledger, lg, 'utf8');
 
   const fdir = path.join(GEN, 'tests/failures');

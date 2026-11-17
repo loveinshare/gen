@@ -3,7 +3,7 @@ name: plan
 description: 把已固定的需求与验收标准拆成有界切片，每片给出 touch list、验收、回滚方式、停止修复规则和依赖顺序。当 analyze 完成、需要决定“先做什么、做到哪算停”，或用户说“给个计划”“怎么拆”时使用。不写代码。
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
   system: .gen
 ---
 
