@@ -1,0 +1,15 @@
+tests/runs/
+*.local.md
+reports/_draft/
+**/_scratch/
+
+.env
+.env.*
+!.env.example
+*.secret.*
+**/credentials.*
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

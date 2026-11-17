@@ -1,0 +1,35 @@
+<!-- 为何用 CI：lint/key-check 是确定性检查，适合每次 push/PR 都跑；不产生文档，不需要人读 -->
+# .gen 一致性校验（复制到 .github/workflows/gen-lint.yml）
+name: gen-lint
+
+on:
+  push:
+    paths:
+      - '.gen/**'
+      - 'AGENTS.md'
+  pull_request:
+    paths:
+      - '.gen/**'
+      - 'AGENTS.md'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # key-check 需要完整历史才能 diff
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 工具链自测
+        run: node .gen/scripts/gen.mjs test
+      - name: 校验 .gen
+        run: node .gen/scripts/gen.mjs lint
+      - name: key 触碰检查（PR）
+        if: github.event_name == 'pull_request'
+        run: node .gen/scripts/gen.mjs key-check --base "origin/${{ github.base_ref }}" --fail-on critical
+      - name: 闸门检查（有未关闭决策则失败）
+        run: node .gen/scripts/gen.mjs status
+      # 提示：若希望 PR 里允许存在 open 决策，把上面这步改成
+      #   run: node .gen/scripts/gen.mjs status || echo "::warning::存在未关闭决策"

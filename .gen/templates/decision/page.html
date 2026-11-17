@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<!--
+  决策交互页模板（.gen / decision-page）
+  用法：复制到 .gen/decisions/D-YYYYMMDDHH-<slug>/page.html，替换下方 DATA 对象。
+  硬要求：单文件、零外链、无预选、每项必须有文字输入、导出可复制可下载。
+  历史轮：把上一版另存为 page-rN.html，不要覆盖。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>决策页</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --fg:#1f2328; --muted:#5b6570; --line:#d8dee4;
+    --accent:#1f6feb; --warn:#9a6700; --warnbg:#fff8e1; --ok:#1a7f37;
+    --card:#fff; --radius:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14171a; --fg:#e6edf3; --muted:#9aa4af; --line:#30363d;
+           --card:#1b1f24; --warnbg:#2a2410; --warn:#d29922; --ok:#3fb950; --accent:#4493f8; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       -webkit-text-size-adjust:100%}
+  .wrap{max-width:940px;margin:0 auto;padding:24px 18px 80px}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}
+
+  /* 顶部状态条 */
+  .top{position:sticky;top:0;z-index:10;background:var(--bg);
+       border-bottom:1px solid var(--line);padding:10px 18px}
+  .top .inner{max-width:940px;margin:0 auto;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+         font-size:12px;color:var(--muted);background:var(--card)}
+  .badge.round{color:var(--accent);border-color:var(--accent)}
+  .badge.open{color:var(--warn);border-color:var(--warn)}
+  .badge.done{color:var(--ok);border-color:var(--ok)}
+  h1{font-size:22px;margin:6px 0 4px}
+  h2{font-size:17px;margin:0 0 6px}
+  p{margin:6px 0}
+  .muted{color:var(--muted);font-size:14px}
+  .goal{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+        padding:14px 16px;margin:16px 0}
+  .goal .q{font-weight:600}
+
+  /* 决策项 */
+  .item{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+        padding:16px;margin:16px 0}
+  .item.closed{opacity:.72}
+  .item .head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  .qid{font-size:12px;color:var(--muted);letter-spacing:.04em}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:rgba(127,127,127,.08);font-weight:600;white-space:nowrap}
+  .rec{color:var(--ok);font-weight:600}
+  .assume{background:var(--warnbg);border-left:3px solid var(--warn);
+          padding:8px 12px;border-radius:6px;margin:10px 0;font-size:14px}
+  .assume b{color:var(--warn)}
+  details{margin:8px 0}
+  summary{cursor:pointer;color:var(--muted);font-size:14px}
+  textarea{width:100%;min-height:88px;resize:vertical;padding:10px;border-radius:8px;
+           border:1px solid var(--line);background:var(--bg);color:var(--fg);
+           font:15px/1.6 inherit}
+  textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  select{padding:5px 8px;border-radius:6px;border:1px solid var(--line);
+         background:var(--card);color:var(--fg);font-size:14px}
+  .hint{font-size:13px;color:var(--muted)}
+  .foot{margin-top:28px;border-top:1px solid var(--line);padding-top:16px}
+  button{padding:9px 16px;border-radius:8px;border:1px solid var(--line);
+         background:var(--card);color:var(--fg);font-size:15px;cursor:pointer}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #out{width:100%;min-height:180px;margin-top:12px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .warnline{font-size:13px;color:var(--warn)}
+  @media print{
+    .top{position:static}
+    button,#out,.row{display:none!important}
+    details{display:block}
+    details>summary{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="inner">
+    <span class="badge round" id="b-round">第 1 轮</span>
+    <span class="badge open" id="b-open">未关闭 0 项</span>
+    <span class="badge" id="b-id">D-YYYYMMDDHH-slug</span>
+    <span class="muted" id="b-updated"></span>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1 id="title">决策标题</h1>
+  <p class="muted">留下你的批注、反问、要求解释；也可以直接改写方案。空着 ≠ 同意。</p>
+
+  <div class="goal">
+    <p><span class="q">这次要达成：</span><span id="goal"></span></p>
+    <p><span class="q">你在决定：</span><span id="dq"></span></p>
+  </div>
+
+  <div id="items"></div>
+
+  <div class="foot">
+    <p class="warnline" id="saveHint">填完点「生成批复」，把文本框内容整段贴回聊天即可（也可以下载成 response-rN.md）。</p>
+    <div class="row">
+      <button class="primary" onclick="generate()">生成批复</button>
+      <button id="saveBtn" onclick="saveToDisk()">保存到 .gen/</button>
+      <button onclick="download()">下载 response-rN.md</button>
+      <button onclick="copyOut()">复制到剪贴板</button>
+      <select id="roundSel" onchange="generate()" title="导出为第几轮批复">
+        <option value="1">导出为 r1</option>
+        <option value="2">导出为 r2</option>
+        <option value="3">导出为 r3</option>
+        <option value="4">导出为 r4</option>
+        <option value="5">导出为 r5</option>
+      </select>
+    </div>
+    <textarea id="out" readonly placeholder="点「生成批复」后这里出现可复制的 Markdown"></textarea>
+  </div>
+</div>
+
+<script type="application/json" id="gen-data">
+{
+  "id": "D-YYYYMMDDHH-slug",
+  "title": "决策标题（一句话）",
+  "round": 1,
+  "goal": "这次变更要达成什么（用户视角）",
+  "decision_question": "你现在要拍板的核心问题是什么",
+  "updated": "YYYY-MM-DDTHH:MM",
+  "items": [
+    {
+      "id": "Q1",
+      "question": "问题一句话？",
+      "why_now": "为什么现在必须定（不定会怎样）",
+      "options": [
+        { "key": "A", "label": "方案 A 名称", "how": "怎么做", "gain": "收益", "cost": "代价", "reversible": "可逆" },
+        { "key": "B", "label": "方案 B 名称", "how": "怎么做", "gain": "收益", "cost": "代价", "reversible": "部分可逆" },
+        { "key": "C", "label": "方案 C 名称", "how": "怎么做", "gain": "收益", "cost": "代价", "reversible": "不可逆" }
+      ],
+      "recommend": "B",
+      "recommend_reason": "为什么推荐它（要能被反驳）",
+      "assumptions": ["我替你假设了：……", "若这个假设不成立，推荐会变成 A"],
+      "excluded": [{ "option": "D 方案", "reason": "因为……（避免你重复提被否掉的方案）" }],
+      "default_if_silent": "如果你不表态，我会按 B 实现，并把风险记入 ambiguities.md（这不等于你同意）",
+      "state": "unanswered",
+      "answers": { "1": "" }
+    }
+  ]
+}
+</script>
+
+<script>
+/* ===================== 需要替换的唯一数据块（必须是合法 JSON） ===================== */
+/* 约定：只改下面这段 JSON。next 轮生成新页面时，把旧页面另存为 page-rN.html；
+   `gen decision-diff` 会解析这两份 JSON，自动出「本轮 vs 上一轮」的差异页。 */
+const DATA = JSON.parse(document.getElementById("gen-data").textContent);
+/* ============================================================= */
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function render(){
+  document.title = "决策页 · " + DATA.title;
+  document.getElementById("title").textContent = DATA.title;
+  document.getElementById("goal").textContent = DATA.goal;
+  document.getElementById("dq").textContent = DATA.decision_question;
+  document.getElementById("b-id").textContent = DATA.id;
+  document.getElementById("b-round").textContent = "第 " + DATA.round + " 轮";
+  document.getElementById("b-updated").textContent = DATA.updated ? ("更新于 " + DATA.updated) : "";
+  document.getElementById("roundSel").value = String(DATA.round);
+
+  const host = document.getElementById("items");
+  host.innerHTML = "";
+
+  DATA.items.forEach(it => {
+    const closed = it.state === "closed";
+    const div = document.createElement("section");
+    div.className = "item" + (closed ? " closed" : "");
+    div.id = "item-" + it.id;
+
+    const optRows = it.options.map(o => `
+      <tr>
+        <td>${esc(o.key)}${o.key === it.recommend ? ' <span class="rec">推荐</span>' : ""}</td>
+        <td><b>${esc(o.label)}</b></td>
+        <td>${esc(o.how)}</td>
+        <td>${esc(o.gain)}</td>
+        <td>${esc(o.cost)}</td>
+        <td>${esc(o.reversible)}</td>
+      </tr>`).join("");
+
+    const assume = it.assumptions && it.assumptions.length
+      ? `<div class="assume"><b>待确认假设</b><ul>${it.assumptions.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`
+      : "";
+
+    const excl = it.excluded && it.excluded.length
+      ? `<details><summary>已排除的方案（${it.excluded.length}）</summary><ul>${it.excluded.map(e=>`<li><b>${esc(e.option)}</b>：${esc(e.reason)}</li>`).join("")}</ul></details>`
+      : "";
+
+    const hist = Object.keys(it.answers || {}).filter(k => k !== String(DATA.round) && it.answers[k])
+      .sort().map(k => `<details><summary>第 ${esc(k)} 轮你的批复</summary><pre>${esc(it.answers[k])}</pre></details>`).join("");
+
+    div.innerHTML = `
+      <div class="head">
+        <div>
+          <div class="qid">${esc(it.id)}</div>
+          <h2>${esc(it.question)}</h2>
+        </div>
+        <div class="row" style="margin:0">
+          <span class="badge ${closed?'done':'open'}" id="badge-${it.id}">${closed?'已关闭':(it.state==='annotated'?'已批注':'未回答')}</span>
+        </div>
+      </div>
+      <p class="muted">为什么现在定：${esc(it.why_now)}</p>
+      <table>
+        <thead><tr><th>选项</th><th>名称</th><th>怎么做</th><th>收益</th><th>代价</th><th>可逆性</th></tr></thead>
+        <tbody>${optRows}</tbody>
+      </table>
+      <p>推荐 <b>${esc(it.recommend)}</b>：${esc(it.recommend_reason)}</p>
+      ${assume}
+      ${excl}
+      <p class="hint">如果不决策：${esc(it.default_if_silent)}</p>
+      ${hist}
+      <p style="margin-top:12px"><b>你的批复</b>（批注 / 反问 / 要求解释 / 改写方案）</p>
+      <textarea id="resp-${it.id}" placeholder="在这里写……">
+${esc((it.answers && it.answers[String(DATA.round)]) || "")}</textarea>
+      <div class="row">
+        <label class="hint">本项状态</label>
+        <select id="state-${it.id}" onchange="syncBadge('${it.id}')">
+          <option value="unanswered"${it.state==='unanswered'?' selected':''}>未回答</option>
+          <option value="annotated"${it.state==='annotated'?' selected':''}>已批注</option>
+          <option value="closed"${it.state==='closed'?' selected':''}>已关闭（这项定了）</option>
+        </select>
+        <span class="hint">只有你明确选「已关闭」，工具才会推进这项。</span>
+      </div>`;
+    host.appendChild(div);
+  });
+
+  updateCount();
+}
+
+function syncBadge(id){
+  const sel = document.getElementById("state-" + id);
+  const b = document.getElementById("badge-" + id);
+  const v = sel.value;
+  b.className = "badge " + (v === "closed" ? "done" : "open");
+  b.textContent = v === "closed" ? "已关闭" : (v === "annotated" ? "已批注" : "未回答");
+  document.getElementById("item-" + id).classList.toggle("closed", v === "closed");
+  updateCount();
+}
+
+function updateCount(){
+  let open = 0;
+  DATA.items.forEach(it => {
+    const sel = document.getElementById("state-" + it.id);
+    const v = sel ? sel.value : it.state;
+    if (v !== "closed") open++;
+  });
+  const b = document.getElementById("b-open");
+  b.textContent = open === 0 ? "全部关闭 ✓" : ("未关闭 " + open + " 项");
+  b.className = "badge " + (open === 0 ? "done" : "open");
+}
+
+function generate(){
+  const r = document.getElementById("roundSel").value;
+  const now = new Date().toLocaleString("zh-CN", {hour12:false});
+  let md = `# 批复：${DATA.title}\n\n`;
+  md += `- 决策 ID：${DATA.id}\n- 轮次：r${r}\n- 导出时间：${now}\n- 核心问题：${DATA.decision_question}\n\n`;
+
+  DATA.items.forEach(it => {
+    const sel = document.getElementById("state-" + it.id);
+    const state = sel ? sel.value : it.state;
+    const text = (document.getElementById("resp-" + it.id) || {}).value || "";
+    md += `## ${it.id} ${it.question}\n\n`;
+    md += `- 状态：${state === "closed" ? "已关闭" : state === "annotated" ? "已批注" : "未回答"}\n`;
+    md += `- 我的批复：\n\n`;
+    md += text.trim() ? text.trim().split("\n").map(l => "  " + l).join("\n") : "  （未填写）";
+    md += `\n\n`;
+  });
+
+  const openItems = DATA.items.filter(it => {
+    const sel = document.getElementById("state-" + it.id);
+    return (sel ? sel.value : it.state) !== "closed";
+  });
+  md += `## 汇总\n\n- 未关闭项：${openItems.length ? openItems.map(i=>i.id).join("、") : "无"}\n`;
+  document.getElementById("out").value = md;
+  try { localStorage.setItem("gen-decision-" + DATA.id + "-r" + r, md); } catch(e){}
+  document.getElementById("out").scrollIntoView({behavior:"smooth", block:"center"});
+  return md;
+}
+
+/* 本地服务模式（node .gen/scripts/gen.mjs serve）下直接写盘，免去复制粘贴 */
+async function saveToDisk(){
+  const ta = document.getElementById("out");
+  const md = ta.value || generate();
+  const r = document.getElementById("roundSel").value;
+  const hint = document.getElementById("saveHint");
+
+  if (location.protocol !== "http:" && location.protocol !== "https:") {
+    alert("当前是直接打开的本地文件，浏览器无权写磁盘。\n\n三个办法：\n1. 点「下载 response-rN.md」\n2. 点「复制到剪贴板」贴回聊天\n3. 运行 node .gen/scripts/gen.mjs serve --decision " + DATA.id + "，然后从 http://127.0.0.1:7070 打开本页");
+    return;
+  }
+  try {
+    const res = await fetch("/api/response", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({id: DATA.id, round: r, markdown: md})
+    });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || "未知错误");
+    hint.textContent = "✔ 已写入 " + j.path + "（第 " + r + " 轮）。现在可以在聊天里说「读一下 response-r" + r + "」。";
+    hint.style.color = "var(--ok)";
+    document.getElementById("saveBtn").textContent = "已保存 r" + r;
+  } catch(e) {
+    hint.textContent = "✖ 保存失败：" + e.message + "（退回下载/复制方式）";
+    hint.style.color = "var(--bad, #cf222e)";
+  }
+}
+
+function download(){
+  const ta = document.getElementById("out");
+  if (!ta.value) generate();
+  const r = document.getElementById("roundSel").value;
+  const blob = new Blob([document.getElementById("out").value], {type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `response-r${r}.md`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+async function copyOut(){
+  const ta = document.getElementById("out");
+  if (!ta.value) generate();
+  try {
+    await navigator.clipboard.writeText(ta.value);
+    alert("已复制，可直接贴回聊天。");
+  } catch(e){
+    ta.focus(); ta.select();
+    alert("浏览器拒绝了剪贴板访问，已为你全选，请按 Ctrl+C 复制。");
+  }
+}
+
+render();
+
+/* 服务模式提示：只有在 http(s) 下才能直接写盘 */
+(function(){
+  const served = location.protocol === "http:" || location.protocol === "https:";
+  const hint = document.getElementById("saveHint");
+  if (served) {
+    hint.textContent = "已连接本地服务：填完点「生成批复」，再点「保存到 .gen/」，批复会直接落盘成 response-rN.md。";
+    hint.style.color = "var(--ok)";
+  } else {
+    hint.textContent = "填完点「生成批复」，把文本框内容整段贴回聊天；或运行 gen.mjs serve 后从 http://127.0.0.1:7070 打开本页以便一键落盘。";
+  }
+})();
+</script>
+</body>
+</html>

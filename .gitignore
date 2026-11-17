@@ -1,0 +1,20 @@
+# 根目录 gitignore
+# 原则：结论与证据入库，原始日志与本地秘密不入库。
+# 子目录 .gen/.gitignore 继续生效。
+
+# 秘密
+.env
+.env.*
+!.env.example
+*.secret.*
+**/credentials.*
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 本地草稿与个人笔记
+*.local.md
+**/_scratch/

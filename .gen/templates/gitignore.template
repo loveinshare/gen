@@ -1,0 +1,29 @@
+# .gen gitignore 模板 → 复制为 .gen/.gitignore
+# 原则：结论与证据入库，原始日志与本地秘密不入库。
+
+# 原始测试日志（本地保留 ≥30 天）
+tests/runs/
+
+# 本地草稿与个人笔记
+*.local.md
+reports/_draft/
+**/_scratch/
+
+# 秘密
+.env
+.env.*
+!.env.example
+*.secret.*
+**/credentials.*
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 明确不要忽略的（保留追查依据）
+!.gen/decisions/**
+!.gen/tests/failures/**
+!.gen/tests/fixtures/**
+!.gen/architecture/agent/snapshots/**

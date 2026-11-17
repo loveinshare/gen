@@ -1,0 +1,358 @@
+我很赞同你 但是目前我觉着一个大型项目的中间过程中与coding工具的交互较少 我希望你可以和我一起出具一份skills的雏形 后续我会让ai工具真正的完善它 你跟我一起把他的初步构成起来 
+1，我认为再一项重大决策 应当生成一个html 可以用来交互 中间有coding工具陈述的 以及我追问、反问、要求解释，要求决策等等 我改完之后工具在进行读取和判定直到没有疑虑再继续 
+2 一个项目有一个固定的文件夹用来存放各种功能性和交互性的 你帮我完善究竟有哪些以及具体命名和层级 比如上面的交互文件夹 以及测试文件夹，报告文件夹 以及各种文件的细节规范 
+3接着上面的说 我觉着应该有定期的报告系统，所有的格式都应当为数字的年月日时+标题 如果复杂则应该用html 你帮我补充报告的范式 
+4 开发过程中的测试也应该有专门的文件夹 以及记录一路上的测试记录，可以不进git记录，在后续追查的时候会很有依据，你来补充整个范式
+5 我觉着整个系统架构还应该有一个vibecoding工具自己清洗 以及让我清晰的两套架构描述 并且当进行feature修改的时候应该自动进行修改 尤其是让我能清晰和了解到产品缺陷的文档不能太晦涩 可能也要有我能批注的能力 类似1 你来设计这个流程怎样以及两套架构应该怎么细节设计 以及固定存放位置 有些项目可能你用node 或者fastapi其实都无所谓，但是具体的算法可能是整个系统成败的关键，所以找出key的能力十分重要。
+上面说的可能有点乱 你整理一下给一个合适的顺序和层层次 另外我说的这些有没有一些现成的skills或者本身codex（因为它是开源的 可能好查）本身就自带了？ 以及你评估一下我这些要求是否合理
+
+
+
+这一轮你把 decisions 的性质说清楚了：它不是一本决策登记册，而是**开发前的多轮对齐过程**。每个模糊点、每个需要你确认的假设，都值得一个能让你写字、追问、要求解释、反复修订的交互页；工具读完你的批复后要回应、要解释、要追问，直到所有模糊点关闭，才允许动代码。上一版把它压成“单文件总账 + 附属页”，恰好丢掉了“往复”这个核心。这一版把 decisions 重写为**每个决策一个目录、多轮交互、关闭后才放行**，并保留 INDEX 作为你统一查看的入口。全量如下。
+
+
+# Vibecoding 大型项目 Skills 体系 · 进程化全量版 v4
+
+## 一、核心修正：decisions 是交互过程，不是静态登记
+
+你对 decisions 的定位可以概括为四句话：
+
+1. **触发于模糊**：开发前或开发中遇到需要你确认的模糊点、隐藏假设、方案取舍时触发，而不是 agent 自己猜。
+2. **每个决策一个交互页**：工具生成带文字输入能力的 HTML，你逐项批注、反问、要求解释、修改方案。
+3. **多轮往复**：工具读取你的批复后，必须回应——解释你要求解释的、回答你反问的、按你的意见修订方案，**并且可以提出新问题**。你可能再批注，它再回应，直到没有疑虑。
+4. **关闭后才开发**：所有相关决策都关闭后，才允许进入实际实现。这是一个硬闸门。
+
+因此 decisions 的权威记录不是一份静态总账，而是**每个决策目录里的多轮线程**；`INDEX.md` 只是你统一查看状态和入口的看板，不承载决策正文。
+
+
+## 二、两条横切规则（先于所有 skill）
+
+### 规则 A：决策交互协议
+
+- 每个决策独立成一个目录 `decisions/D-YYYY-MM-DDTHH-<slug>/`，内含交互页、线程记录、每轮用户批复。
+- 决策的生命周期是 `open → resolved`（或 `blocked`），只有 `resolved` 才放行实现。
+- 多轮往复由工具驱动：每轮读取用户批复 → 逐项回应 → 生成新一版交互页 → 等待下一轮批复。
+- `decisions/INDEX.md` 是统一入口，列出所有决策的状态、轮次、未关闭项；每次状态变化时更新。
+- **闸门**：`implement` 开始前必须检查当前 feature / slice 相关的所有决策是否 `resolved`；有 `open` 的，拒绝执行并列出未关闭项。
+
+### 规则 B：md / html 由工具按复杂度判定
+
+写入根 `AGENTS.md`，所有 skill 产出文件时执行同一套判定，不预设某个目录“必须是 html”或“必须是 md”。默认 md，html 是例外：
+
+| 判据 | 倾向 md | 倾向 html |
+|---|---|---|
+| 内容结构 | 线性叙述、状态清单、结论摘要 | 需要并排对比 ≥3 个选项 |
+| 可视化需求 | 无图、无 diff、无前后对照 | 需要架构图、diff 可视化、前后行为对比 |
+| 交互需求 | 只读 | 需要选择、批注、文字输入、回传 |
+| 首屏可扫性 | 一屏能扫完 | 密度高到一屏扫不完，需要分区导航 |
+| 更新方式 | 追加或就地小改 | 每次生成即整体快照 |
+
+工具选 html 时，必须在产物头部或同目录 `_format-note.md` 写一句“为何 html：触发了哪条判据”。用户可覆盖，覆盖记录写入 `progress.md`。**唯一预设**是决策交互页默认 html，因为其本质就是交互，不是文档。
+
+
+## 三、进程模型
+
+所有 skill 挂在这条循环上：
+
+```
+intake → analyze → plan → decision-gate → implement → validate → repair → document → advance
+```
+
+| 阶段 | skill | 产物 | 停止于 |
+|---|---|---|---|
+| intake | `continuation-planner` | 项目快照 + 未决项 + handoff | 接管完成 |
+| analyze | `analyze` | 证据、约束、风险、验收标准 | 不进入计划 |
+| plan | `plan` | 切片计划 + 停止修复规则 | 不进入实现 |
+| decision-gate | `decision-page` | 多轮交互线程 + INDEX 更新 | **所有相关决策 resolved** |
+| implement | `implement` | 有界变更 + 静态检查 | 不宣称运行时通过 |
+| validate | `validate` | 每个验收标准的当前证据 | 未证明不结论 |
+| repair | `repair` | 根因复现 + 回归覆盖 + 已验证修复 | 不靠猜测 |
+| document | `periodic-report` + `arch-sync` + `test-ledger` | 报告、架构更新、测试总账 | 只记录，不重新决策 |
+| advance | `key-guard` 复核 + 状态推进 | 阶段状态转移 | 下一切片 |
+
+**decision-gate 是硬闸门**：不是“建议先决策”，而是“没有关闭的决策就不允许进入 implement”。这条写在 `AGENTS.md` 和 `implement` skill 里，两处都执行。
+
+
+## 四、目录骨架
+
+```text
+.project/
+├── AGENTS.md
+├── workflow/
+│   ├── state/
+│   │   ├── project-snapshot.md
+│   │   ├── current-phase.md
+│   │   ├── progress.md                  # append-only
+│   │   ├── ambiguities.md
+│   │   └── done-criteria.md
+│   ├── plans/
+│   │   └── YYYY-MM-DDTHH-<phase>.md
+│   └── handoffs/
+│       └── YYYY-MM-DDTHH-<slug>.md
+├── decisions/
+│   ├── INDEX.md                         # 统一看板：所有决策的状态、轮次、未关闭项
+│   ├── _template/
+│   │   └── page.html                    # 交互页模板
+│   └── D-YYYY-MM-DDTHH-<slug>/
+│       ├── page.html                    # 最新交互页（文字输入 + 导出批复）
+│       ├── thread.md                    # 多轮线程：权威记录，append-only
+│       ├── response-r1.md               # 第 1 轮用户批复
+│       ├── response-r2.md
+│       └── page-r1.html                 # 历史轮页面（可选保留）
+├── specs/
+│   └── <feature>/
+│       ├── spec.md
+│       ├── revisions/
+│       │   └── YYYY-MM-DDTHH-<slug>.md
+│       ├── plan.md
+│       └── decisions.md                 # 列出相关 decision 目录和最终结论摘要
+├── reports/
+│   ├── YYYY-MM-DDTHH-<title>.md|.html
+│   └── archive/
+├── tests/
+│   ├── runs/                            # 原始日志，本地保留，gitignore
+│   ├── failures/
+│   ├── history/
+│   │   └── LEDGER-YYYY-MM.md
+│   └── LEDGER.md
+├── architecture/
+│   ├── AGENTS/
+│   │   ├── overview.md
+│   │   ├── modules/
+│   │   ├── contracts/
+│   │   ├── key/
+│   │   │   ├── REGISTRY.md
+│   │   │   ├── CHANGELOG.md
+│   │   │   └── reviews/
+│   │   ├── decisions/                   # ADR，链到 decisions/D-.../thread.md
+│   │   └── snapshots/
+│   │       └── YYYY-MM-DDTHH-<phase>.md
+│   └── HUMAN/
+│       ├── ARCHITECTURE.md
+│       └── KEY.md
+└── .agents/skills/
+    ├── continuation-planner/
+    ├── analyze/
+    ├── plan/
+    ├── decision-page/
+    ├── implement/
+    ├── validate/
+    ├── repair/
+    ├── periodic-report/
+    ├── test-ledger/
+    ├── arch-sync/
+    └── key-guard/
+```
+
+**与上一版的关键差异**：`decisions/` 下不再有单文件总账，改为每个决策一个目录；`INDEX.md` 只做看板；`thread.md` 是权威记录；`specs/<feature>/decisions.md` 只列相关决策目录和最终结论摘要，不复制正文。
+
+
+## 五、decisions 交互协议详解
+
+### 5.1 决策目录内的文件职责
+
+| 文件 | 职责 | 谁写 |
+|---|---|---|
+| `page.html` | 最新一版交互页，支持逐项文字输入、追问、导出批复 | 工具生成，用户填写 |
+| `thread.md` | 多轮线程的权威记录：每轮 agent 问题、用户批复原文、agent 回应、最终结论 | 工具 append，不覆盖 |
+| `response-rN.md` | 第 N 轮用户批复的结构化导出，作为 thread 的附件 | 用户导出，工具读取 |
+| `page-rN.html` | 历史轮页面，保留用户当时的输入状态 | 工具归档 |
+
+**权威性**：`thread.md` 是权威记录。`page.html` 是最新交互界面，如果两者不一致，以 thread 为准。
+
+### 5.2 交互页的技术要求
+
+- 单文件、内联样式、UTF-8/CJK-safe、无网络依赖。
+- **首屏不出现代码**；代码折叠在二级。
+- 顶部写清：这次变更要达成什么、你在决定什么、当前是第几轮、还有几项未关闭。
+- 每项是一个**决策控件**，包含：
+  - agent 的陈述：问题是什么、选项有哪些、推荐哪个、为什么；
+  - **显式暴露 agent 替你假设了什么**（标“待确认假设”）、**排除了哪些选项及理由**；
+  - 每个选项的“怎么做 / 收益 / 代价 / 可逆性”；
+  - **一个文字输入区**，让你批注、反问、要求解释、改写方案；
+  - 该控件的状态：`未回答 / 已批注 / 已关闭`。
+- **无任何选项预选**；空字段表示“未回答”，绝不表示“同意”。
+- 底部有“导出批复”按钮，把当前所有文字输入导出为结构化 Markdown（`response-rN.md`）。
+- 已关闭项在后续轮次折叠，仍开放项和新增项展开。
+
+### 5.3 多轮往复流程
+
+**第 1 轮：工具发起**
+
+1. agent 在 `decisions/` 下创建目录 `D-YYYY-MM-DDTHH-<slug>/`，写 `thread.md` 的 Round 1（agent 初始问题陈述），生成 `page.html`。
+2. 更新 `INDEX.md`：新增一行，状态 `open`，轮次 1，未关闭项数量。
+3. 告诉用户页面路径，等待批复。
+
+**用户批复**
+
+4. 用户在浏览器打开 `page.html`，逐项文字输入，点击“导出批复”，得到 `response-r1.md`。
+5. 用户把批复粘贴回聊天，或保存到决策目录，告诉工具“读一下 response-r1”。
+
+**工具回应**
+
+6. agent 读取 `response-r1.md`，**逐项回应，不能只说“已更新”**：
+   - 解释用户要求解释的内容；
+   - 回答用户的反问；
+   - 按用户意见修订方案；
+   - 对用户没有覆盖但仍开放的项，说明为什么仍开放；
+   - **可以提出新问题**（用户批复暴露的新模糊点）。
+7. 在 `thread.md` 追加 Round 1 的“用户批复”和“agent 回应”。
+8. 生成新一版 `page.html`：已关闭项折叠，仍开放项展开，新问题加入，顶部显示第 2 轮。
+9. 归档旧页为 `page-r1.html`。
+10. 更新 `INDEX.md`：轮次 2，未关闭项数量。
+
+**循环**
+
+11. 重复 4–10，直到所有项关闭。
+
+**关闭**
+
+12. 所有项关闭后，agent 在 `thread.md` 写“最终结论”段：每项定了什么、理由、影响范围。
+13. `INDEX.md` 该行状态改为 `resolved`，记录关闭时间。
+14. 如果涉及架构或 key，在 `architecture/AGENTS/decisions/` 写一条 ADR 摘要并链到 `thread.md`，不复制正文。
+
+### 5.4 关闭判定
+
+“所有项关闭”指交互页上每个决策控件的状态都是 `已关闭`，且 `thread.md` 的最终结论段已写。**不由 agent 单方面宣布关闭**：agent 只能在用户批复明确表示“这项定了”或“按推荐执行”后，将该控件标为已关闭；用户没有明确表态的项，保持开放。
+
+### 5.5 闸门：未关闭不放行
+
+`implement` skill 开始前必须执行：
+
+1. 读 `INDEX.md`，找出当前 feature / slice 相关的所有决策。
+2. 检查每个决策目录的 `thread.md` 最终结论段是否存在、`INDEX.md` 状态是否为 `resolved`。
+3. 如果有 `open` 或 `blocked` 的，**拒绝执行**，输出：“以下决策未关闭，不能进入实现：D-...（未关闭项：...）”。
+4. 只有全部 `resolved` 才继续。
+
+这条也写进 `AGENTS.md` 的分级规则里：L2/L3 改动如果有未关闭决策，`implement` 必须拒绝；L1 小改动若无模糊点可不触发决策，但一旦触发就必须走完才能继续。
+
+### 5.6 INDEX.md 结构
+
+```markdown
+# 决策看板
+
+| decision_id | 状态 | 轮次 | 一句话 | 未关闭项 | 关联 feature | 最近更新 |
+|---|---|---|---|---|---|---|
+| D-20261115-01 | open | 2 | 鉴权方案待定 | 2 项 | auth | 2026-11-15T14 |
+| D-20261114-02 | resolved | 3 | 缓存策略已定 | 0 | cache | 2026-11-14T18 |
+```
+
+每次状态、轮次、未关闭项变化时更新。如果决策多到一屏扫不完，按规则 B 生成 `INDEX.html` 看板，`INDEX.md` 保留为工具可读源。
+
+
+## 六、逐 skill 定义
+
+### 1. `continuation-planner`：接管半成品
+
+**触发**：会话恢复、新 agent 首次进入、隔一段时间回来继续、你说“上次做到哪了”。
+
+**工作流**：
+1. 读 `project-snapshot.md`、`current-phase.md`、`progress.md` 尾部、`ambiguities.md`、当前 `spec.md` 及最新 `revisions/`、`decisions/INDEX.md`。
+2. 轻量一致性检查：spec 声称的模块是否还在，`REGISTRY.md` 的 key 位置是否漂移，`INDEX.md` 中 `open` 或 `blocked` 的决策是否还挂着。
+3. 产出 `handoffs/YYYY-MM-DDTHH-<slug>.md`：现在在哪、为什么在这里、下一步、未决项、需重新确认的假设、**未关闭的决策列表**。
+4. 更新 `project-snapshot.md`，不重写历史。
+
+**纪律**：接管者不重新决策，只重新对齐。发现不一致写入 `ambiguities.md` 或触发新的 decision-page。handoff 默认 md；若未决项含多个需对比的选项，按规则 B 判定是否附 html。
+
+### 2. `analyze` → `plan`
+
+`analyze` 产出证据、约束、风险、验收标准，停在计划前。`plan` 产出切片计划，带里程碑、每切片验收检查、**停止修复规则**。plan 按阶段分文件放 `workflow/plans/`，不覆盖；实质调整时新 plan 写入，`progress.md` 记“因何修订”。
+
+**格式**：默认 md；含多方案对比、依赖图、跨阶段排期时按规则 B 判定是否生成 html，并写理由。
+
+### 3. `decision-page`：多轮交互
+
+**触发**：开发前或开发中遇到以下任一情况——
+- 需要你确认的模糊点、隐藏假设；
+- 存在 ≥2 个有依赖关系的取舍；
+- agent 发现自己正在“猜”你的意图；
+- key 变更、契约变更、架构变更需要你拍板。
+
+**不触发**：纯线性、无依赖的单点确认留在聊天；agent 可以合理决定的实现细节不触发。
+
+**skill 内容**：把第五节（5.1–5.6）的协议完整写进 `SKILL.md`，包括目录结构、页面技术要求、多轮流程、关闭判定、闸门、INDEX 更新规则。`description` 里写清触发和不触发条件。
+
+**支持文件**：`references/page-template.html`、`references/thread-template.md`、`references/response-format.md`、`assets/decision.css`、`scripts/export-response.md`。
+
+**参考实现**：`visual-plan` 的决策控件与 lock 机制、`visual-review-page` 的逐项批注与轮次快照、`ubershow` 的“浏览器点击不持久”协议。你的增量在于：多轮往复由工具主动驱动，每轮必须逐项回应用户批复，且关闭后才放行实现。
+
+### 4. `implement` → `validate` → `repair`
+
+**implement 前置检查**（硬闸门）：
+1. 读 `decisions/INDEX.md`，找出当前 feature / slice 相关决策。
+2. 有 `open` 或 `blocked` 的，拒绝执行，列出未关闭项。
+3. 全部 `resolved` 才继续。
+
+**implement**：只做有界变更和静态检查，不声称运行时通过。
+**validate**：为每个验收标准产出当前证据，未证明不结论。
+**repair**：要求根因复现、回归覆盖、已验证修复，不允许无法复现时猜测。
+
+**进程化**：每切片验证结果 append 到 `progress.md` 和 `tests/LEDGER.md`；失败写入 `tests/failures/`，带切片 ID、复现命令、期望 vs 实际、根因、回归测试位置；非阻塞疑问写入 `ambiguities.md`，当前可运行切片完成后再集中补问。
+
+### 5. `test-ledger`：append-only、按月分卷
+
+```
+tests/
+├── LEDGER.md              # 当前月活账
+├── history/LEDGER-YYYY-MM.md
+├── failures/
+└── runs/                  # 原始日志，本地保留，gitignore
+```
+
+每行字段：`时间 | 阶段/切片 ID | 触发原因 | 范围 | 结果 | 失败数 | 关键失败链接 | 对应 spec 修订 | 对应 decision_id`。`failures/` 每条进 git；`runs/` 原始日志 gitignore，结论和证据保留。append-only + 按月分卷保证半年后仍能定位“这个测试何时开始不稳定”。LEDGER 和 failure 默认 md；需前后行为对比、多环境矩阵、可视化 diff 时按规则 B 附 html 快照。
+
+### 6. `arch-sync`：增量层 + 阶段快照 + 人读视图
+
+| 层 | 位置 | 性质 |
+|---|---|---|
+| 增量层 | `architecture/AGENTS/modules/`、`contracts/`、`key/` | 就地更新，带 `last_synced`、`source_decision` |
+| 快照层 | `architecture/AGENTS/snapshots/YYYY-MM-DDTHH-<phase>.md` | 阶段收束时冻结，永不修改 |
+| 人读视图 | `architecture/HUMAN/ARCHITECTURE.md` | 由增量层 + 最新快照渲染 |
+
+**触发**：feature 修改完成、key 变更、ADR 状态转移、阶段收束。消费 `specs/*/revisions/`、`decisions/D-*/thread.md` 的最终结论、`tests/failures/`，更新增量层，必要时生成新快照，重新渲染 HUMAN 视图，写 sync-report 到 `reports/`。
+
+**HUMAN 视图反晦涩写法**：每模块五句话（负责什么、不负责什么、谁依赖它、它依赖谁、出问题影响谁）；缺陷和已知限制单独成节，每条带 `status`、影响范围、关联 `decision_id` 链接；每段末尾标注依据的快照或决策编号。批注用 `<!-- @annotate: ... -->`，skill 读取后合并进增量层、重新渲染，并把“批注如何被处理”写回批注附近。格式按规则 B 判定。
+
+### 7. `key-guard`：key 有变更史
+
+```
+architecture/AGENTS/key/
+├── REGISTRY.md
+├── CHANGELOG.md
+└── reviews/YYYY-MM-DDTHH-<key-id>.md
+```
+
+`REGISTRY.md` 字段：`key_id`、`version`、`last_changed`、`last_decision`（链到 `D-...`）、`depends_on`。`CHANGELOG.md` 每行：时间、key ID、旧→新版本、变更原因、`decision_id`、验证方式、是否通过。`reviews/` 每条：变更前后行为对比、受影响依赖、测试覆盖、人确认记录。
+
+**闸门**：任何 diff 触碰登记位置时阻止静默合并，强制走 key-change decision-page（复用多轮交互协议）。确认后变更史写入 CHANGELOG 和 reviews。AI 可发现候选 key，**最终判定必须人做**。
+
+
+## 七、`AGENTS.md` 中的规则
+
+**格式协议（规则 B）** 全文写入；所有 skill 输出前执行；选 html 必须写理由；用户可覆盖并记入 `progress.md`。
+
+**决策交互协议（规则 A）** 全文写入：
+- 每个决策一个目录 `decisions/D-YYYY-MM-DDTHH-<slug>/`；
+- 多轮往复，每轮工具必须逐项回应用户批复，不得只说“已更新”；
+- `thread.md` 是权威记录，append-only；
+- 关闭判定由用户明确表态，agent 不单方面关闭；
+- `INDEX.md` 每次状态变化时更新；
+- **未关闭决策不放行实现**。
+
+**分级触发**：
+- **L1 小改动**：`implement → validate → test-ledger`，`progress.md` 追加一行。无模糊点可不触发决策；一旦触发，必须走完才能继续。
+- **L2 功能级**：`analyze → plan → decision-gate（如有模糊点）→ implement → validate → periodic-report → arch-sync`。spec 实质修订写入 `revisions/`。
+- **L3 架构 / key / 契约变更**：全链路；decision-page 强制；`implement` 前必须确认相关决策全部 `resolved`；key-guard 的 CHANGELOG 和 reviews 必须更新；阶段收束冻结快照；完整报告进 `reports/`；failure 证据进 git。
+
+**接管规则**：任何会话恢复或新 agent 进入，必须先跑 `continuation-planner`，读完状态栈并产出 handoff，才能进入实现。
+
+
+## 八、留底摘要：这一版相对上一版改了什么
+
+1. **decisions 从“单文件总账 + 附属页”改为“每个决策一个目录、多轮交互、关闭后放行”**。每个决策目录包含 `page.html`（支持文字输入和导出批复）、`thread.md`（权威多轮线程）、`response-rN.md`（每轮用户批复）。`INDEX.md` 只做统一看板，不承载正文。
+2. **多轮往复由工具主动驱动**：工具读取用户批复后必须逐项回应——解释、回答反问、修订方案、提出新问题——然后生成新一版页面等待下一轮，直到所有项关闭。用户没有明确表态的项保持开放，agent 不单方面关闭。
+3. **decision-gate 成为硬闸门**：`implement` 开始前检查相关决策是否全部 `resolved`；有 `open` 或 `blocked` 的，拒绝执行并列出未关闭项。这条写在 `AGENTS.md` 和 `implement` skill 两处。
+4. **md/html 格式选择仍是横切规则 B**：默认 md，html 是例外，选 html 必须写理由；唯一预设是决策交互页默认 html，因为其本质是交互。
+5. 其余进程化设计保持：接管有快照、计划有版本、测试有按月分卷的 append-only 历史、架构有增量层 + 阶段快照 + 人读视图、key 有 CHANGELOG 和 reviews。
+
+这份可直接留底。落地顺序建议：先做 `decision-page` 的多轮交互协议和 `implement` 的闸门检查——前者直接解决你“模糊点必须被摊开、被反复确认”的核心诉求，后者保证“没关闭就不许开发”不是一句口号。
