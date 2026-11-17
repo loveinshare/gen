@@ -352,6 +352,7 @@ node .gen/scripts/gen.mjs install --target claude               # 装 skills 到
 
 | 版本 | 变更 | 破坏性 |
 |---|---|---|
+| 4.3.1 | 疑问表模板不再放假数据（示例移入代码块，其中一条还断言了错误的 Node 版本）；`gen.mjs` 新增 `appendTableRow()`，`demo` 改为往表尾追加行而不是替换示例行 | 无（模板里的示例行本就不是数据） |
 | 4.3.0 | 修 CI 模板 `paths` 过滤导致 key-check 永不触发；修模板示例行被 `status` 当成真实数据（新项目误报"1 次 fail"）；宪法补齐 `waived` 状态并统一闸门口径（`resolved`/`waived` 均放行）；决策项状态统一为 `unanswered`；报告结构统一为十节（模板 / 工具 / skill 三处对齐）；`.gen/AGENTS.md` 状态枚举表补全（spec/adr/snapshot/ledger/state）；`init` 补建 `decisions/archive/`；`install` 改为按同名冲突判定（全局目录不再被一律拒绝）；12 个 skill 补齐"触发/步骤/交付判定"五段结构 | 决策项状态值由 `open` 改为 `unanswered`（旧页面数据块需改一次）；`report` 的 frontmatter 新增 `report_type` 实参传递、`--type` 现在会校验；报告章节号由 9 节变 10 节（"一句话结论"升为第 1 节） |
 | 4.2.0 | 新增 `key-check`（git∩REGISTRY，命中即失败）、`install`（skills 分发）、`report`（看板初稿）、`decision-diff`（轮次差异页）；决策页数据改为 JSON 数据块；测试 40→56 | 决策页数据从 JS 字面量改为 `<script id="gen-data">` JSON；旧页面需转换一次（`fillPageData` 可用） |
 | 4.1.1 | 新增 `gen test` 与 `gen.test.mjs`（40 用例）；修 4 个由测试暴露的缺陷；CI 模板加自测步骤 | 无 |
